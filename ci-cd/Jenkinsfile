@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    environment {
+        AWS_REGION = "us-east-1"
+        ECR_REPO   = "${env.ECR_REPO ?: 'aws-app-deployment-demo'}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Install dependencies') {
+            steps {
+                dir('app') {
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Run tests') {
+            steps {
+                echo 'No tests defined yet.'
+            }
+        }
+        stage('Build Docker image') {
+            steps {
+                script {
+                    docker.withRegistry("https://${AWS_REGION}.amazonaws.com", 'aws-ecr-credentials') {
+                        def app = docker.build("${ECR_REPO}:$BUILD_NUMBER", './')
+                        app.push()
+                        app.push('latest')
+                    }
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Trigger deployment to EC2 via SSH or CodeDeploy here.'
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
